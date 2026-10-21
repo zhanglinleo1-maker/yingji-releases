@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "app_id": "yingji",
+  "releases": [
+    {
+      "version": "0.2.0-beta4",
+      "channel": "beta",
+      "published": false,
+      "published_at": "2026-10-21",
+      "notes": "仅为占位示例，不是已发布版本。请替换为本版真实变更说明。",
+      "sha256": "替换为最终安装包的64位SHA256",
+      "size_bytes": 0,
+      "downloads": {
+        "github": "https://github.com/zhanglinleo1-maker/yingji-releases/releases/tag/v0.2.0-beta4"
+      }
+    }
+  ]
+}
