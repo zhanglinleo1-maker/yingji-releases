@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +13,20 @@ s = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(s)
 
 class Safeguards(unittest.TestCase):
+    def test_stream_upload_keeps_credential_out_of_arguments(self):
+        def run(args, **kwargs):
+            self.assertNotIn('fake-token', ' '.join(args))
+            self.assertIn(b'Bearer fake-token', kwargs['input'])
+            Path(args[args.index('--output') + 1]).write_text('{"id":1}')
+            return SimpleNamespace(returncode=0, stdout=b'201 100 1000 0.1')
+        with patch.object(s.subprocess, 'run', side_effect=run):
+            result = s.upload_with_curl('https://gitee.com/api/test', 'fake-token', Path('test.zip'))
+        self.assertEqual(result['id'], 1)
+
+    def test_stream_stall_is_reported_as_failure(self):
+        result = SimpleNamespace(returncode=28, stdout=b'000 1000 12 90')
+        with patch.object(s.subprocess, 'run', return_value=result), self.assertRaises(s.SyncError):
+            s.upload_with_curl('https://gitee.com/api/test', 'fake-token', Path('test.zip'))
     def test_gitee_null_missing_release_creates_release(self):
         target = {'tag_name':'v0.2.0-beta8', 'id':1}
         with patch.object(s, 'api', side_effect=[None, target]) as call:

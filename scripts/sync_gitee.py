@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import tempfile
 import time
 import urllib.error
@@ -33,6 +34,8 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 def api(base, path, token, method='GET', body=None, multipart=None):
+    if multipart is not None and os.name != 'nt':
+        return upload_with_curl(base + path, token, multipart)
     headers = {'Authorization': 'Bearer ' + token, 'User-Agent': 'Yingji-Release-Sync', 'Accept': 'application/json'}
     data = None
     if body is not None:
@@ -51,6 +54,32 @@ def api(base, path, token, method='GET', body=None, multipart=None):
         raise SyncError(f'{urllib.parse.urlsplit(base).hostname} API HTTP {error.code}; no download links changed unless verification already passed') from None
     except Exception as error:
         raise SyncError(f'{urllib.parse.urlsplit(base).hostname} API connection failed ({type(error).__name__}); rerun after checking service availability') from None
+
+def upload_with_curl(url, token, file):
+    """Stream large files and retain non-secret transfer metrics on failure."""
+    if any(c in token for c in '\r\n"'):
+        raise SyncError('Invalid credential characters')
+    with tempfile.TemporaryDirectory() as tmp:
+        response = Path(tmp) / 'response.json'
+        # Secret travels through stdin, not arguments, logs or persistent files.
+        config = f'url = "{url}"\nheader = "Authorization: Bearer {token}"\n'
+        result = subprocess.run(['curl', '--silent', '--show-error', '--connect-timeout', '30',
+            '--max-time', '600', '--speed-limit', '1024', '--speed-time', '90', '--config', '-',
+            '--form', 'file=@' + str(file), '--output', str(response),
+            '--write-out', '%{http_code} %{size_upload} %{speed_upload} %{time_total}'],
+            input=config.encode(), capture_output=True, timeout=630)
+        # write-out contains only four numeric fields, never credentials or URLs.
+        numbers = result.stdout.decode(errors='replace').strip().split()
+        if len(numbers) == 4 and all(re.fullmatch(r'[0-9.]+', x) for x in numbers):
+            print('Upload metrics: HTTP {}, sent {} bytes, {} bytes/sec, {} sec.'.format(*numbers), flush=True)
+        if result.returncode:
+            raise SyncError(f'Gitee streaming upload failed (curl {result.returncode}); see transfer metrics, no download metadata advanced')
+        if not numbers or not numbers[0].startswith('2'):
+            raise SyncError('Gitee upload HTTP ' + (numbers[0] if numbers else 'unknown') + '; metadata not advanced')
+        try:
+            return json.loads(response.read_bytes())
+        except (ValueError, OSError):
+            raise SyncError('Gitee upload returned an unexpected non-JSON response') from None
 
 def sha(path):
     h = hashlib.sha256()
