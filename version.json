@@ -1,5 +1,18 @@
 {
   "schema_version": 1,
   "app_id": "yingji",
-  "releases": []
+  "releases": [
+    {
+      "version": "0.2.0-beta7",
+      "channel": "beta",
+      "published": true,
+      "published_at": "2026-10-30",
+      "notes": "公开测试版：统一云端单项异常隔离与恢复；识别缺口与入库交接状态分开；完整规则v0.5.11。",
+      "sha256": "e6b972a6b2334754e71a4f00bd720be0995bc69435785aa903855f89a855b73f",
+      "size_bytes": 105045547,
+      "downloads": {
+        "github": "https://github.com/zhanglinleo1-maker/yingji-releases/releases/tag/v0.2.0-beta7"
+      }
+    }
+  ]
 }
