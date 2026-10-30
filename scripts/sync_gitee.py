@@ -44,13 +44,13 @@ def api(base, path, token, method='GET', body=None, multipart=None):
         data = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{multipart.name}"\r\nContent-Type: application/octet-stream\r\n\r\n').encode() + multipart.read_bytes() + f'\r\n--{boundary}--\r\n'.encode()
     request = urllib.request.Request(base + path, data=data, headers=headers, method=method)
     try:
-        with urllib.request.build_opener(NoRedirect()).open(request, timeout=240) as response:
+        with urllib.request.build_opener(NoRedirect()).open(request, timeout=900 if multipart is not None else 120) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         # Never print response bodies, headers, credentials, or request objects.
         raise SyncError(f'{urllib.parse.urlsplit(base).hostname} API HTTP {error.code}; no download links changed unless verification already passed') from None
-    except Exception:
-        raise SyncError(f'{urllib.parse.urlsplit(base).hostname} API connection failed; rerun after checking service availability') from None
+    except Exception as error:
+        raise SyncError(f'{urllib.parse.urlsplit(base).hostname} API connection failed ({type(error).__name__}); rerun after checking service availability') from None
 
 def sha(path):
     h = hashlib.sha256()
@@ -123,6 +123,7 @@ def put_file(base, token, name, content, expected_sha=None):
         'message': 'Update verified domestic downloads', 'content': base64.b64encode(content).decode()})
 
 def ensure_asset(release_id, file, token, directory):
+    print(f'Checking/uploading {file.name} ({file.stat().st_size} bytes).', flush=True)
     path = f'/releases/{release_id}/attach_files'
     assets = api(GT, path, token)
     if not isinstance(assets, list):
@@ -131,6 +132,7 @@ def ensure_asset(release_id, file, token, directory):
     if len(matches) > 1:
         raise SyncError('Duplicate Gitee asset names; refusing ambiguous downloads')
     item = matches[0] if matches else api(GT, path, token, 'POST', multipart=file)
+    print(f'Attachment saved: {file.name}; verifying public download.', flush=True)
     url = item.get('browser_download_url') or item.get('download_url')
     if not url:
         raise SyncError('Gitee did not return a public attachment URL')
@@ -184,8 +186,8 @@ def main():
         # Query destination and create only after size/integrity checks pass.
         target = ensure_release(tag, release, gt_token)
         print('Gitee release ready; uploading/verifying attachments.', flush=True)
-        ensure_asset(target['id'], package, gt_token, directory)
         ensure_asset(target['id'], checksums, gt_token, directory)
+        ensure_asset(target['id'], package, gt_token, directory)
     # Re-read before updating: preserve concurrent newer release entries.
     manifest_entry = api(GH, '/contents/version.json', gh_token)
     manifest = json.loads(file_content(manifest_entry))
