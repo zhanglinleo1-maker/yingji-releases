@@ -64,10 +64,10 @@ def upload_with_curl(url, token, file):
         # Secret travels through stdin, not arguments, logs or persistent files.
         config = f'url = "{url}"\nheader = "Authorization: Bearer {token}"\n'
         result = subprocess.run(['curl', '--silent', '--show-error', '--connect-timeout', '30',
-            '--max-time', '600', '--speed-limit', '1024', '--speed-time', '90', '--config', '-',
+            '--max-time', '3600', '--speed-limit', '1024', '--speed-time', '90', '--config', '-',
             '--form', 'file=@' + str(file), '--output', str(response),
             '--write-out', '%{http_code} %{size_upload} %{speed_upload} %{time_total}'],
-            input=config.encode(), capture_output=True, timeout=630)
+            input=config.encode(), capture_output=True, timeout=3630)
         # write-out contains only four numeric fields, never credentials or URLs.
         numbers = result.stdout.decode(errors='replace').strip().split()
         if len(numbers) == 4 and all(re.fullmatch(r'[0-9.]+', x) for x in numbers):
