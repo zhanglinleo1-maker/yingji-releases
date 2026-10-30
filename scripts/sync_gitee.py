@@ -139,6 +139,22 @@ def ensure_asset(release_id, file, token, directory):
     if sha(fetched) != sha(file):
         raise SyncError('Existing/uploaded Gitee attachment hash mismatch; refusing overwrite or metadata change')
 
+def ensure_release(tag, source, token):
+    try:
+        target = api(GT, '/releases/tags/' + tag, token)
+    except SyncError as error:
+        if 'HTTP 404;' not in str(error):
+            raise
+        target = None
+    # Gitee may return HTTP 200 with JSON null for a missing release.
+    if target is None:
+        notes = ('国内下载：下载附件。ZIP附件请先解压，再运行其中的安装程序。\n安装程序与GitHub原版逐字节一致，SHA256.txt同时列出安装程序与ZIP校验值。\n\n' + source.get('body', ''))
+        target = api(GT, '/releases', token, 'POST', {'tag_name': tag, 'target_commitish': 'main',
+            'name': source['name'], 'body': notes, 'prerelease': source.get('prerelease', True)})
+    if not isinstance(target, dict) or target.get('tag_name') != tag or not target.get('id'):
+        raise SyncError('Gitee release was not created or returned an unexpected result; no download metadata changed')
+    return target
+
 def main():
     gh_token, gt_token = os.environ.get('GH_TOKEN', ''), os.environ.get('GITEE_TOKEN', '')
     if not gh_token or not gt_token:
@@ -162,19 +178,12 @@ def main():
         if sha(original) != row['sha256']:
             raise SyncError('Downloaded GitHub installer failed hash verification')
         package = prepare_installer(original, directory)
+        print(f'GitHub installer verified; upload package size {package.stat().st_size} bytes.', flush=True)
         checksums = directory / 'SHA256.txt'
         checksums.write_text(sha(original) + '  ' + original.name + '\n' + (sha(package) + '  ' + package.name + '\n' if package != original else ''), encoding='utf-8')
         # Query destination and create only after size/integrity checks pass.
-        try:
-            target = api(GT, '/releases/tags/' + tag, gt_token)
-        except SyncError as error:
-            if 'HTTP 404;' not in str(error):
-                raise
-            notes = ('国内下载：下载附件。ZIP附件请先解压，再运行其中的安装程序。\n安装程序与GitHub原版逐字节一致，SHA256.txt同时列出安装程序与ZIP校验值。\n\n' + release.get('body', ''))
-            target = api(GT, '/releases', gt_token, 'POST', {'tag_name': tag, 'target_commitish': 'main',
-                'name': release['name'], 'body': notes, 'prerelease': release.get('prerelease', True)})
-        if target.get('tag_name') != tag:
-            raise SyncError('Destination release tag mismatch')
+        target = ensure_release(tag, release, gt_token)
+        print('Gitee release ready; uploading/verifying attachments.', flush=True)
         ensure_asset(target['id'], package, gt_token, directory)
         ensure_asset(target['id'], checksums, gt_token, directory)
     # Re-read before updating: preserve concurrent newer release entries.

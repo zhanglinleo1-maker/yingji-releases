@@ -12,6 +12,17 @@ s = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(s)
 
 class Safeguards(unittest.TestCase):
+    def test_gitee_null_missing_release_creates_release(self):
+        target = {'tag_name':'v0.2.0-beta8', 'id':1}
+        with patch.object(s, 'api', side_effect=[None, target]) as call:
+            result = s.ensure_release('v0.2.0-beta8', {'name':'beta8'}, 'fake')
+        self.assertEqual(result, target)
+        self.assertEqual(call.call_args.args[3], 'POST')
+
+    def test_release_permission_error_does_not_create_release(self):
+        with patch.object(s, 'api', side_effect=s.SyncError('HTTP 403;')) as call, self.assertRaises(s.SyncError):
+            s.ensure_release('v0.2.0-beta8', {'name':'beta8'}, 'fake')
+        self.assertEqual(call.call_count, 1)
     def test_wrong_source_hash_rejected(self):
         row = {'version': '0.2.0-beta8', 'published': True, 'size_bytes': 8, 'sha256': 'a'*64}
         release = {'tag_name': 'v0.2.0-beta8', 'assets': [{'name': 'Yingji-0.2.0-beta8-win64-setup.exe', 'size':8, 'digest': 'sha256:'+'b'*64}]}
