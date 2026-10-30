@@ -4,7 +4,7 @@ Windows素材回顾工具：浏览素材时录下讲解，整理语音与画面�
 
 ## 下载应用
 
-- [映记beta7安装包与版本说明](https://github.com/zhanglinleo1-maker/yingji-releases/releases/tag/v0.2.0-beta7)
+- [映记beta8安装包与版本说明](https://github.com/zhanglinleo1-maker/yingji-releases/releases/tag/v0.2.0-beta8)
 - [全部版本](https://github.com/zhanglinleo1-maker/yingji-releases/releases)
 - [国内Gitee镜像](https://gitee.com/zhanglinleo1-maker/yingji-releases)：维护者手动同步，安装包附件不保证已同步；没有同版附件时请用GitHub下载。
 
@@ -19,7 +19,7 @@ Windows素材回顾工具：浏览素材时录下讲解，整理语音与画面�
 应用负责回顾与证据整理，Skill指导Agent检查资料、确认需求、写脚本、制作粗剪和交付可编辑工程。Skill采用MIT许可，允许按许可修改与分发；这不将映记应用、LOGO或第三方组件一并授予MIT许可。应用本体免费使用，但未作为完整开源项目发布；包内Python代码可读。本仓库不含整个应用源码项目、私人历史或用户数据。
 
 
-注意：beta7应用内的Skill按钮仍沿用旧的私有仓库地址，其他用户可能打不开。请使用上面本页提供的公开Skill链接；不需要申请私有项目权限。后续安装包再统一修正，不替换已发布的同版文件。
+beta8已将应用内Skill按钮修正为公开GitHub与Gitee地址，无需私有项目权限。beta7旧按钮问题仍保留在历史包中，请升级或使用本页公开链接。
 
 ## 云端服务与统计
 

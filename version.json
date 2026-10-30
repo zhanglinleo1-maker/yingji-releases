@@ -3,6 +3,18 @@
   "app_id": "yingji",
   "releases": [
     {
+      "version": "0.2.0-beta8",
+      "channel": "beta",
+      "published": true,
+      "published_at": "2026-10-30",
+      "notes": "应用内Skill入口更新为公开GitHub和Gitee地址；移除私有权限提示。模型、规则与数据处理方式不变。",
+      "sha256": "3647c0a1c650408a21da6fb158bde242cd500406720b01f826ca09b2be9bb56f",
+      "size_bytes": 105047779,
+      "downloads": {
+        "github": "https://github.com/zhanglinleo1-maker/yingji-releases/releases/tag/v0.2.0-beta8"
+      }
+    },
+    {
       "version": "0.2.0-beta7",
       "channel": "beta",
       "published": true,
