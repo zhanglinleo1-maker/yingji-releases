@@ -1,0 +1,33 @@
+name: Publish verified Gitee downloads
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published GitHub release tag to copy
+        required: true
+        default: v0.2.0-beta8
+permissions:
+  contents: write
+concurrency:
+  group: gitee-publish
+  cancel-in-progress: false
+jobs:
+  mirror:
+    if: github.repository == 'zhanglinleo1-maker/yingji-releases'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Test publication safeguards
+        run: python3 -m unittest discover -s tests -v
+      - name: Copy and verify release, then update download metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: python3 scripts/sync_gitee.py
